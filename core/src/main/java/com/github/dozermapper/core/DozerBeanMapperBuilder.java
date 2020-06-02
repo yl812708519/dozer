@@ -74,7 +74,6 @@ import com.github.dozermapper.core.util.MappingUtils;
 import com.github.dozermapper.core.util.MappingValidator;
 import com.github.dozermapper.core.util.ReflectionUtils;
 import com.github.dozermapper.core.util.RuntimeUtils;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -544,33 +543,43 @@ public final class DozerBeanMapperBuilder {
         LOG.info("Initializing Dozer. Version: {}, Thread Name: {}",
                  DozerConstants.CURRENT_VERSION, Thread.currentThread().getName());
 
+        // 获取classLoader， 配置的是最高优先级
         DozerClassLoader defaultClassLoader = getClassLoader();
         Settings settings = getSettings(defaultClassLoader);
         DozerClassLoader settingsClassLoader = getClassLoaderFromSettings(settings, defaultClassLoader);
 
         DozerClassLoader classLoader = settingsClassLoader == null ? defaultClassLoader : settingsClassLoader;
 
+        // 代理处理器， 判断类是不是cglib/javassit 生成的代理类， 提供方法获取原始类
+        // 依旧是配置的优先级高
         DozerProxyResolver proxyResolver = getProxyResolver(settings, classLoader);
 
+        // 缓存管理， 默认初始化了两个缓存MAP
         CacheManager cacheManager = getCacheManager(settings);
+        // 加载 java EL表达式引擎， 加载不到返回一个没有实现的类
         ELEngine elEngine = getELEngine();
         ElementReader elementReader = getElementReader(elEngine);
 
+        // 门面实例， 无逻辑实现
         BeanContainer beanContainer = new BeanContainer();
         beanContainer.setElEngine(elEngine);
         beanContainer.setElementReader(elementReader);
         beanContainer.setClassLoader(classLoader);
         beanContainer.setProxyResolver(proxyResolver);
-
+        // 保存创建对象的一堆策略，组成责任链创建对象
         DestBeanCreator destBeanCreator = new DestBeanCreator(beanContainer);
+        // 为 其中一个工厂创建策略提供 工厂实现， 允许开发者自定义
         destBeanCreator.setStoredFactories(beanFactories);
 
+        // 属性描述符工厂， 具体逻辑在get方法
         PropertyDescriptorFactory propertyDescriptorFactory = new PropertyDescriptorFactory();
         BeanMappingGenerator beanMappingGenerator = new BeanMappingGenerator(beanContainer, destBeanCreator, propertyDescriptorFactory);
         DestBeanBuilderCreator destBeanBuilderCreator = new DestBeanBuilderCreator();
-
+        // 读取附加策略, 实现DozerModule, 实现相应的工厂方法，会在这里进行策略加载
+        // 包括，目标对象构造器生成方法、属性描述符生成方法， 对象映射生成方法
         loadDozerModules(beanContainer, destBeanBuilderCreator, beanMappingGenerator, propertyDescriptorFactory, destBeanCreator);
 
+        // 处理 对象映射规则， 包含xml和通过文件
         List<MappingFileData> mappingsFileData = new ArrayList<>();
         if (settings.getUseJaxbMappingEngine()) {
             mappingsFileData.addAll(buildXmlMappings(beanContainer, destBeanCreator, propertyDescriptorFactory, elEngine));
@@ -581,8 +590,9 @@ public final class DozerBeanMapperBuilder {
             mappingsFileData.addAll(readXmlMappings(xmlParserFactory, xmlParser));
             mappingsFileData.addAll(loadFromFiles(mappingFiles, xmlParserFactory, xmlParser, beanContainer));
         }
-
+        // 执行用户自定义的  beanMapping build方法, 默认应该是空的
         mappingsFileData.addAll(buildGenericMappings(beanContainer, destBeanCreator, propertyDescriptorFactory));
+        // 通过BeanMappingBuilder 创建classMap, 默认应该是没有的
         mappingsFileData.addAll(createMappingsWithBuilders(beanContainer, destBeanCreator, propertyDescriptorFactory));
 
         loadCustomMappings(mappingsFileData, beanContainer, propertyDescriptorFactory, beanMappingGenerator, destBeanCreator);

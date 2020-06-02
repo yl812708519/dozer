@@ -98,12 +98,15 @@ public final class MappingsParser {
                 List<FieldMap> fms = classMap.getFieldMaps();
                 // iterate through the fields and see wether or not they should be mapped
                 // one way class mappings we do not need to add any fields
+                // 当前的映射配置 非 单向转换的情况下， 需要生成 反向转换的classMap
                 if (!MappingDirection.ONE_WAY.equals(classMap.getType())) {
                     for (FieldMap fieldMap : fms.toArray(new FieldMap[] {})) {
                         fieldMap.validate();
 
                         // If we are dealing with a Map data type, transform the field map into a MapFieldMap type
                         // only apply transformation if it is map to non-map mapping.
+                        // 如果是 map->object || object->map， fieldMap 替换成 MapFieldMap
+                        // 这里会初始化 类的 DozerPropertyDescriptor， 并以类型为key放入对应的PropertyDescriptorMap中
                         if (!(fieldMap instanceof ExcludeFieldMap)) {
                             if ((MappingUtils.isSupportedMap(classMap.getDestClassToMap()) ^ MappingUtils.isSupportedMap(classMap.getSrcClassToMap()))
                                 || (MappingUtils.isSupportedMap(fieldMap.getDestFieldType(classMap.getDestClassToMap()))
@@ -117,6 +120,7 @@ public final class MappingsParser {
 
                         // if the source is a java.util.Map, and not already mapped as key=>value,
                         // map the field as key=>value, not as bean property
+                        // 来源类是个MAP, 但是fieldMap 中的 key 为空， 复制一个Field并设置key
                         if (MappingUtils.isSupportedMap(classMap.getSrcClassToMap()) && fieldMap.getSrcFieldKey() == null) {
                             DozerField newSrcField = fieldMap.getSrcFieldCopy();
                             newSrcField.setName(DozerConstants.SELF_KEYWORD);
@@ -126,6 +130,7 @@ public final class MappingsParser {
                         // like above but the reverse:
                         // if the destination is a java.util.Map, and not already mapped as key=>value,
                         // map the field as key=>value, not as bean property
+                        // 目标类是个MAP, 但是fieldMap 中的 key 为空， 复制一个Field并设置key
                         if (MappingUtils.isSupportedMap(classMap.getDestClassToMap()) && fieldMap.getDestFieldKey() == null) {
                             DozerField newDestField = fieldMap.getDestFieldCopy();
                             newDestField.setName(DozerConstants.SELF_KEYWORD);
@@ -133,6 +138,7 @@ public final class MappingsParser {
                             fieldMap.setDestField(newDestField);
                         }
 
+                        // 当前字段 非单项的配置  生成反向的 映射信息
                         if (!(MappingDirection.ONE_WAY.equals(fieldMap.getType()) && !(fieldMap instanceof ExcludeFieldMap))) {
                             // make a prime field map
                             fieldMapPrime = (FieldMap)fieldMap.clone();
@@ -163,11 +169,14 @@ public final class MappingsParser {
                 } else {
                     // since it is one-way...we still need to validate if it has some type of method mapping and validate the
                     // field maps
+                    // 配置为 单向转换时, 做相关校验, map中的 来源类、目标类不能为空
                     for (FieldMap oneWayFieldMap : fms.toArray(new FieldMap[] {})) {
                         oneWayFieldMap.validate();
 
                         MappingUtils.applyGlobalCopyByReference(globalConfiguration, oneWayFieldMap, classMap);
                         // check to see if we need to exclude the map
+                        // field 映射配置了 单向， 生成一个ExcludeFieldMap
+                        // 看起来这种情况 classMapPrime 并没有用 。。。下面仅在 非单向时才会加入到ClassMappings
                         if (MappingDirection.ONE_WAY.equals(oneWayFieldMap.getType())) {
                             fieldMapPrime = new ExcludeFieldMap(classMapPrime, beanContainer, destBeanCreator, propertyDescriptorFactory);
                             MappingUtils.reverseFields(oneWayFieldMap, fieldMapPrime);

@@ -177,17 +177,14 @@ public class MappingProcessor implements Mapper {
 
         ClassMap classMap = null;
         try {
+            // 获取映射规则，需要看ClassMapBuilder里面的一系列Generator, 会给ClassMap装配不同的属性， 有些是每次都调用的
             classMap = getClassMap(srcObj.getClass(), destType, mapId);
-
-
+            // 发布事件， 有方法可以添加event listener, 实现EventListener并且注册为SPRING的BEAN就行了
             eventManager.on(new DefaultEvent(EventTypes.MAPPING_STARTED, classMap, null, srcObj, result, null));
-
-            // TODO Check if any proxy issues are here
-            // Check to see if custom converter has been specified for this mapping
-            // combination. If so, just use it.
+            // 获取converterClass, 是否有自定义的转换用的处理类， 通过源与目标的类型获取
             Class<?> converterClass = MappingUtils.findCustomConverter(converterByDestTypeCache, classMap.getCustomConverters(), srcObj
                     .getClass(), destType);
-
+            // Mapper.map()调用参数用的 目标类的话，这里的destObj是空，逻辑会新建对象，这里会像缓存一样尝试获取已经映射过的结果并直接返回
             if (destObj == null) {
                 // If this is a nested MapperAware conversion this mapping can be already processed
                 // but we can do this optimization only in case of no destObject, instead we must copy to the dest object
@@ -196,11 +193,11 @@ public class MappingProcessor implements Mapper {
                     return (T)alreadyMappedValue;
                 }
             }
-
+            // 前面找到了专用的转换类的话， 就会用转换类做映射处理
             if (converterClass != null) {
                 return (T)mapUsingCustomConverter(converterClass, srcObj.getClass(), srcObj, destType, result, null, true);
             }
-
+            // 一个用于创建对象的 数据对象，只承载数据，没有什么额外处理
             BeanCreationDirective creationDirective =
                     new BeanCreationDirective(srcObj, classMap.getSrcClassToMap(), classMap.getDestClassToMap(), destType,
                                               classMap.getDestClassBeanFactory(), classMap.getDestClassBeanFactoryId(), classMap.getDestClassCreateMethod(),
@@ -230,8 +227,11 @@ public class MappingProcessor implements Mapper {
      */
     private <T> T createByCreationDirectiveAndMap(BeanCreationDirective creationDirective, ClassMap classMap, Object srcObj, T result, boolean bypassSuperMappings, String mapId) {
         if (result == null) {
+            //dozer提供了DozerModule， 应该可以扩展， 用ServiceLoader注入进来的, 自带了一个 ProtoBufBuilder
             BeanBuilder beanBuilder = destBeanBuilderCreator.create(creationDirective);
             if (beanBuilder == null) {
+                // 没有对应的特殊策略，用自带BUILDER的创建
+                // DestBeanCreator 看起来也可以扩展 {@link} DestBeanCreator.addPluggedStrategy
                 result = (T)destBeanCreator.create(creationDirective);
                 mapToDestObject(classMap, srcObj, result, bypassSuperMappings, mapId);
             } else {

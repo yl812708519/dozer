@@ -75,8 +75,10 @@ public final class ELExpressionFactory {
      * @throws IllegalStateException if javax.el is not on the class path or a {@link ExpressionFactory} instance could not be constructed
      */
     public static ExpressionFactory newInstance(ClassLoader classLoader) throws IllegalStateException {
+        // 处理不同版本api的类名， 并加载ExpressionFactory这个类
         resolveClassForName();
-
+        // 尝试传入classLoader 或 当前线程classLoader 加载该类，
+        // 失败时返回null, 成功时当前线程classLoader改为传入的classLoader
         return resolveViaClassLoaderOrTCCL(classLoader);
     }
 

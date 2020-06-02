@@ -46,7 +46,9 @@ public class DefaultSettingsProcessor implements SettingsProcessor {
      */
     @Override
     public Settings process() {
+        // 初始化 配置处理器 的列表
         createSettingsResolvers();
+        // 校验有没有已经不支持的配置项
         checkForDeprecatedKeys();
 
         String classLoaderBeanName = String.valueOf(getValue(SettingsKeys.CLASS_LOADER_BEAN, SettingsDefaults.CLASS_LOADER_BEAN));
@@ -65,8 +67,9 @@ public class DefaultSettingsProcessor implements SettingsProcessor {
     }
 
     private void createSettingsResolvers() {
+        // 需要读取的配置文件名
         String fileName = System.getProperty(SettingsKeys.CONFIG_FILE_SYS_PROP);
-
+        // 不同 来源的配置 由不同类保存处理， 配置文件/系统属性/系统环境变量
         resolvers.add(new LegacyPropertiesSettingsResolver(classLoader, getConfigFileName(fileName, SettingsDefaults.LEGACY_PROPERTIES_FILE)));
         resolvers.add(new SystemPropertySettingsResolver());
         resolvers.add(new SystemEnvironmentSettingsResolver());

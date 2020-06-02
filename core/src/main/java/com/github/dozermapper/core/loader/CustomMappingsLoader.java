@@ -52,10 +52,12 @@ public class CustomMappingsLoader {
 
     public LoadMappingsResult load(List<MappingFileData> mappings) {
 
+        // 获取配置信息， 全局一份，多份会报错
         Configuration globalConfiguration = findConfiguration(mappings);
 
         ClassMappings customMappings = new ClassMappings(beanContainer);
         // Decorate the raw ClassMap objects and create ClassMap "prime" instances
+        // 现有的mapping 信息，根据配置生成反转 mapping， 比如 order->dealer映射生成 dealer->order映射
         for (MappingFileData mappingFileData : mappings) {
             List<ClassMap> classMaps = mappingFileData.getClassMaps();
             ClassMappings customMappingsPrime = mappingsParser.processMappings(classMaps, globalConfiguration);
