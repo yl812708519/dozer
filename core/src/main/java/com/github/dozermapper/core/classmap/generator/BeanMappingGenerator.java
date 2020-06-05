@@ -60,8 +60,11 @@ public class BeanMappingGenerator implements ClassMapBuilder.ClassMappingGenerat
         Class<?> srcClass = classMap.getSrcClassToMap();
         Class<?> destClass = classMap.getDestClassToMap();
 
+        // 获取 可读可写的字段列表， getAcceptsFieldsDetector依赖DozerModule中getBeanFieldsDetectors方法提供具体实现
+        // DozerModule中没有可用的就使用默认的  availableFieldDetectors 中的实现
         Set<String> destFieldNames = getAcceptsFieldsDetector(destClass).getWritableFieldNames(destClass);
         Set<String> srcFieldNames = getAcceptsFieldsDetector(srcClass).getReadableFieldNames(srcClass);
+        // 可读可写字段做交集获取 可以映射的字段，判断是否区分大小写
         Set<WildcardFieldMapping> wildcardFieldMappings = (classMap.isWildcardCaseInsensitive()) ?
                 getMatchingFieldsCaseInsensitive(srcFieldNames, destFieldNames) : getMatchingFields(srcFieldNames, destFieldNames);
 
@@ -71,6 +74,7 @@ public class BeanMappingGenerator implements ClassMapBuilder.ClassMappingGenerat
                 continue;
             }
 
+            // 如果已经有对应的FieldMap 就不再创建新的了
             // If field has already been accounted for, then skip
             if (classMap.getFieldMapUsingDest(wildcardFieldMapping.getDestFieldName()) != null ||
                 classMap.getFieldMapUsingSrc(wildcardFieldMapping.getSrcFieldName()) != null) {

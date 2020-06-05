@@ -58,6 +58,8 @@ public class CustomMappingsLoader {
         ClassMappings customMappings = new ClassMappings(beanContainer);
         // Decorate the raw ClassMap objects and create ClassMap "prime" instances
         // 现有的mapping 信息，根据配置生成反转 mapping， 比如 order->dealer映射生成 dealer->order映射
+        // 会生成逆向的classMap 所以返回的可能是多个ClassMap
+        // 也会处理FieldMap中的部分字段， 比如copyByReference
         for (MappingFileData mappingFileData : mappings) {
             List<ClassMap> classMaps = mappingFileData.getClassMaps();
             ClassMappings customMappingsPrime = mappingsParser.processMappings(classMaps, globalConfiguration);
@@ -66,10 +68,14 @@ public class CustomMappingsLoader {
 
         // Add default mappings using matching property names if wildcard policy
         // is true. The addDefaultFieldMappings will check the wildcard policy of each classmap
+        // wildcard配置控制是否有默认映射， 是否只映射配置中的部分
+        // 这里需要根据配置，将默认映射规则补上，一系列生成器为ClassMap补齐 FieldMap映射
         classMapBuilder.addDefaultFieldMappings(customMappings, globalConfiguration);
 
         Set<CustomConverterDescription> customConverterDescriptions = new LinkedHashSet<>();
 
+
+        // 自定义转换器， 配置中读取， 类A和类B的通过类C进行转换
         // build up custom converter description objects
         if (globalConfiguration.getCustomConverters() != null && globalConfiguration.getCustomConverters().getConverters() != null) {
             for (CustomConverterDescription cc : globalConfiguration.getCustomConverters().getConverters()) {
@@ -88,6 +94,7 @@ public class CustomMappingsLoader {
             }
         }
 
+        // 增加了一个 UUID.class => UUID.class 的定制转换器， 看不懂为啥。。。
         addDefaultCustomConverters(globalConfiguration);
 
         return new LoadMappingsResult(customMappings, globalConfiguration);

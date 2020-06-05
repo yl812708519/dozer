@@ -35,6 +35,8 @@ import com.github.dozermapper.core.util.CollectionUtils;
 /**
  * Provides default field mappings when either the source class, destination class or both
  * classes have been declared field accessible e.g. with {@code is-accessible="true"}.
+ *
+ * 当 源类或目标类 声明了字段可访问 时， 该生成器向classMap中补充默认字段的映射
  */
 public class ClassLevelFieldMappingGenerator implements ClassMapBuilder.ClassMappingGenerator {
 
@@ -63,11 +65,13 @@ public class ClassLevelFieldMappingGenerator implements ClassMapBuilder.ClassMap
     public boolean apply(ClassMap classMap, Configuration configuration) {
         BeanFieldsDetector beanFieldsDetector = new JavaBeanFieldsDetector();
 
+        // 确认源类中有getter的字段， 目标类中有setter的字段
         Set<String> destFieldNames = getDeclaredFieldNames(classMap.getDestClassToMap());
         Set<String> destWritablePropertyNames = beanFieldsDetector.getWritableFieldNames(classMap.getDestClassToMap());
         Set<String> srcFieldNames = getDeclaredFieldNames(classMap.getSrcClassToMap());
         Set<String> srcReadablePropertyNames = beanFieldsDetector.getReadableFieldNames(classMap.getSrcClassToMap());
 
+        // 映射中是否大小写敏感
         Set<WildcardFieldMapping> matchingUnmappedFields = (classMap.isWildcardCaseInsensitive()) ? getMatchingUnmappedFieldNamesCaseInsensitive(
                 classMap.getFieldMaps(), srcFieldNames, destFieldNames) : getMatchingUnmappedFieldNames(
                 classMap.getFieldMaps(), srcFieldNames, destFieldNames);

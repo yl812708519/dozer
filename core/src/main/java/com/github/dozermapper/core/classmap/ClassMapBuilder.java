@@ -159,6 +159,7 @@ public final class ClassMapBuilder {
 
     }
 
+    // 处理map类型的映射关系
     public static class MapMappingGenerator implements ClassMappingGenerator {
 
         private final BeanContainer beanContainer;
@@ -274,6 +275,7 @@ public final class ClassMapBuilder {
             return true;
         }
 
+        // 处理类上面的注解配置
         public boolean apply(ClassMap classMap, Configuration configuration) {
             Class<?> srcType = classMap.getSrcClassToMap();
             Class<?> dstType = classMap.getDestClassToMap();
@@ -397,6 +399,10 @@ public final class ClassMapBuilder {
             return true;
         }
 
+
+        // 处理@mapping注解修饰的字段, 只处理当前类属性
+        // build阶段，处理xml中配置的类的 @mapping注解的字段
+        // 源类和目标类重的@mapping都会做处理
         public boolean apply(ClassMap classMap, Configuration configuration) {
             Class<?> srcType = classMap.getSrcClassToMap();
 
@@ -455,6 +461,7 @@ public final class ClassMapBuilder {
             return true;
         }
 
+        // 也是处理注解修饰的字段， 这个生成器处理源类和目标的的父类的属性
         public boolean apply(ClassMap classMap, Configuration configuration) {
             Class<?> srcType = classMap.getSrcClassToMap();
             do {

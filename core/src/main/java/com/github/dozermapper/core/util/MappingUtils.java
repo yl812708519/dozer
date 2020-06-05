@@ -205,6 +205,7 @@ public final class MappingUtils {
         return result;
     }
 
+    // 结合配置为字段设置copyByReference字段， true的话复制时 使用原来的对象赋值
     public static void applyGlobalCopyByReference(Configuration globalConfig, FieldMap fieldMap, ClassMap classMap) {
         CopyByReferenceContainer copyByReferenceContainer = globalConfig.getCopyByReferences();
         String destFieldTypeName = null;
